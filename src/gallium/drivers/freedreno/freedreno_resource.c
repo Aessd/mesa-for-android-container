@@ -1426,6 +1426,18 @@ get_best_layout(struct fd_screen *screen,
    const bool can_implicit = has_implicit_modifier(modifiers, count);
    const bool can_explicit = has_explicit_modifier(modifiers, count);
 
+   /* Match the LINEAR-only dma-buf modifier advertisement.  An implicit
+    * modifier alongside LINEAR must not allow exported buffers to become
+    * UBWC/TILED3: EGL consumers cannot attach those unadvertised layouts to
+    * a framebuffer.  Private GPU resources can still use tiled layouts.
+    */
+   if (tmpl->bind & PIPE_BIND_SHARED) {
+      if (!can_implicit &&
+          !drm_find_modifier(DRM_FORMAT_MOD_LINEAR, modifiers, count))
+         return FD_LAYOUT_ERROR;
+      return FD_LAYOUT_LINEAR;
+   }
+
    /* First, find all the conditions which would force us to linear */
    if (!screen->tile_mode)
       return FD_LAYOUT_LINEAR;
