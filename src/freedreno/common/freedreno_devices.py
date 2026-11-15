@@ -1628,25 +1628,34 @@ add_gpus([
         raw_magic_regs = a8xx_base_raw_magic_regs,
     ))
 
+# gen8_6_0 -- Adreno 825 (Meizu 22 / M2582).
+#
+# Upstream 26.2.6 has no entry for this part: the device table lists 810, 829,
+# 830, 840, X2-85 and X2-90, so fd_dev_info() rejects the 825 and the loader
+# silently falls back to llvmpipe.  The properties below are the ones the
+# mesa-unified fork publishes for gen8_6_0 (branch turnip/gen8): a two-slice
+# part with four CCUs, 64x32 tiles and 64 KiB of compute shared memory.
+#
+# Two ids, because the same part is reported two ways: Android/KGSL reports the
+# bare 0x44030000, while mainline msm adds the slice count in bits 7:4 and the
+# fuse field in bits 47:32 -- 0xffff on this board, whose speedbin cell is
+# unprogrammed -- and so reports 0xffff44030020.  The second entry uses Mesa's
+# own fuse and patch wildcards (freedreno_dev_info.c: dev_id_compare) so any
+# slice/fuse combination of this part matches.
 add_gpus([
-        GPUId(chip_id=0x44030000, name="Adreno (TM) 825"),
+        GPUId(chip_id=0x44030000, name="Adreno (TM) 825"), # KGSL
+        GPUId(chip_id=0xffff440300ff, name="Adreno (TM) 825"), # msm
     ], A6xxGPUInfo(
         CHIP.A8XX,
-        [a7xx_base, a7xx_gen3, a8xx_base, a8xx_gen1, GPUProps(
-            # This is probably not an optimal config for gmem/sysmem, but it was working before and I don't have any a825 device to test (neither I have any trace info)
-            sysmem_ccu_color_cache_fraction = CCUColorCacheFraction.FULL.value,
-            sysmem_per_ccu_color_cache_size = 128 * 1024,
-            sysmem_ccu_depth_cache_fraction = CCUColorCacheFraction.THREE_QUARTER.value,
-            sysmem_per_ccu_depth_cache_size = 96 * 1024,
-        )],
+        [a7xx_base, a7xx_gen3, a8xx_base, a8xx_gen1],
         num_ccu = 4,
         num_slices = 2,
-        tile_align_w = 96,
+        tile_align_w = 64,
         tile_align_h = 32,
         tile_max_w = 16416,
         tile_max_h = 16384,
         num_vsc_pipes = 32,
-        cs_shared_mem_size = 32 * 1024,
+        cs_shared_mem_size = 64 * 1024,
         wave_granularity = 2,
         fibers_per_sp = 128 * 2 * 16,
         raw_magic_regs = a8xx_base_raw_magic_regs,
